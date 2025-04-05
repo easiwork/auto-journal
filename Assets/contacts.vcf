@@ -1,0 +1,42 @@
+BEGIN:VCARD
+VERSION:3.0
+N:Work;Easi;;;
+FN:Easi Work
+ORG:Personal Assistant;
+EMAIL;type=INTERNET;type=pref:todo@easi.work
+TEL;type=pref:+15104242042
+END:VCARD
+
+BEGIN:VCARD
+VERSION:3.0
+FN:Alex Johnson
+TEL;TYPE=CELL:(123) 456-7890
+EMAIL:alex.johnson@example.com
+END:VCARD
+
+BEGIN:VCARD
+VERSION:3.0
+FN:Mia Singh
+EMAIL:mia.singh@example.org
+END:VCARD
+
+BEGIN:VCARD
+VERSION:3.0
+FN:Chris Lee
+TEL;TYPE=WORK:(987) 654-3210
+END:VCARD
+
+BEGIN:VCARD
+VERSION:3.0
+FN:Jamie Patel
+TEL;TYPE=HOME:(555) 123-4567
+EMAIL:jamie.patel@example.net
+END:VCARD
+
+BEGIN:VCARD
+VERSION:3.0
+FN:Taylor Kim
+TEL;TYPE=CELL:(444) 777-8888
+EMAIL:taylor.kim@example.com
+END:VCARD
+
