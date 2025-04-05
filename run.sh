@@ -1,22 +1,7 @@
 #!/bin/bash
 
-# Install or check for uv first
-./check_install_uv.sh
-
-# Check if imessage-exporter is installed
-if ! command -v imessage-exporter &> /dev/null; then
-    echo "imessage-exporter not found. Installing via Homebrew..."
-    brew install imessage-exporter
-    
-    # Check if installation was successful
-    if ! command -v imessage-exporter &> /dev/null; then
-        echo "Error: Failed to install imessage-exporter. Please install it manually."
-        exit 1
-    fi
-    echo "imessage-exporter installed successfully."
-else
-    echo "imessage-exporter is already installed."
-fi
+# Install or check for dependencies first
+./check_deps.sh
 
 # Check if contacts.vcf exists
 if [ ! -f "./Assets/contacts.vcf" ]; then
@@ -25,20 +10,9 @@ if [ ! -f "./Assets/contacts.vcf" ]; then
     exit 1
 fi
 
-# Source the virtual environment
-if [ -d "venv" ]; then
-    echo "Activating venv virtual environment..."
-    source venv/bin/activate
-elif [ -d "venv" ]; then
-    echo "Activating venv virtual environment..."
-    source venv/bin/activate
-else
-    echo "Warning: No virtual environment found. Using system Python."
-fi
-
 # Convert contacts.vcf to CSV if it exists
 echo "Converting contacts to CSV format..."
-python Assets/contacts_to_csv.py
+uv run contacts_to_csv.py
 
 # Get yesterday's date in YYYY-MM-DD format for the start date
 yesterday=$(date -v-1d +"%Y-%m-%d")
@@ -64,14 +38,8 @@ fi
 
 # Map phone numbers to contact names
 echo "Mapping phone numbers to contact names..."
-python text_to_person_mapper.py
+uv run text_to_person_mapper.py
 
 # Run the fetch_summaries script
 echo "Fetching summaries..."
 uv run fetch_summaries.py
-
-# Deactivate the virtual environment if it was activated
-if [ -n "$VIRTUAL_ENV" ]; then
-    deactivate
-fi
-

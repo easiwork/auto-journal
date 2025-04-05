@@ -37,5 +37,5 @@ def vcf_to_csv(vcf_file, csv_file):
 
 # use like this:
 if __name__ == "__main__":
-    vcf_to_csv('contacts.vcf', 'contacts_reformatted.csv')
+    vcf_to_csv('./Assets/contacts.vcf', './Assets/contacts_reformatted.csv')
 

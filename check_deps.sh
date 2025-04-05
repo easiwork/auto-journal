@@ -19,3 +19,22 @@ else
     echo "'uv' is already installed."
 fi
 
+# Check if 'imessage-exporter' is installed
+if ! command -v imessage-exporter &> /dev/null; then
+    echo "'imessage-exporter' is not installed. Installing via Homebrew..."
+    
+    # Install via Homebrew
+    brew install imessage-exporter
+    
+    # Verify installation
+    if ! command -v imessage-exporter &> /dev/null; then
+        echo "Error: Failed to install imessage-exporter"
+        exit 1
+    else
+        echo "'imessage-exporter' installed successfully!"
+    fi
+else
+    echo "'imessage-exporter' is already installed."
+fi
+
+
