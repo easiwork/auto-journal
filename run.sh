@@ -3,6 +3,21 @@
 # Install or check for uv first
 ./check_install_uv.sh
 
+# Check if imessage-exporter is installed
+if ! command -v imessage-exporter &> /dev/null; then
+    echo "imessage-exporter not found. Installing via Homebrew..."
+    brew install imessage-exporter
+    
+    # Check if installation was successful
+    if ! command -v imessage-exporter &> /dev/null; then
+        echo "Error: Failed to install imessage-exporter. Please install it manually."
+        exit 1
+    fi
+    echo "imessage-exporter installed successfully."
+else
+    echo "imessage-exporter is already installed."
+fi
+
 # Check if contacts.vcf exists
 if [ ! -f "./Assets/contacts.vcf" ]; then
     echo "Error: contacts.vcf file not found in Assets directory."
@@ -11,9 +26,9 @@ if [ ! -f "./Assets/contacts.vcf" ]; then
 fi
 
 # Source the virtual environment
-if [ -d ".venv" ]; then
-    echo "Activating .venv virtual environment..."
-    source .venv/bin/activate
+if [ -d "venv" ]; then
+    echo "Activating venv virtual environment..."
+    source venv/bin/activate
 elif [ -d "venv" ]; then
     echo "Activating venv virtual environment..."
     source venv/bin/activate
