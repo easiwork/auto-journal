@@ -1,36 +1,34 @@
 import os
 import requests
 import sys
+import re
 
 # Config
 FOLDER_PATH = "./Assets"
 SERVER_URL = "http://localhost:11434"
+CONVERTED_MESSAGES_FILE = os.path.join(FOLDER_PATH, "converted_messages.txt")
 
 # Prompts
 system_prompt = {
     "role": "system",
     "content": '''
-You're helping me summarize a chunk of an iMessage conversation.
+you're helping me summarize a chunk of an iMessage conversation
 
-Below is a portion of the conversation, formatted like a human-readable transcript. Each message includes:
-- A timestamp
-- The sender's name (a message sent by me will be labeled "Me". Other people will be labeled accordingly.)
-- The message text
-- Occasionally: tapback reactions (e.g., “Loved by ...”, "Laughed by ...")
+below is part of the transcript. each message includes:
+	•	a timestamp
+	•	the sender's name ("Me" means a message from me. others are labeled with their names)
+	•	the message text
+	•	sometimes: tapback reactions (e.g. "Loved by …", "Laughed by …")
 
-A conversation could be a group conversation between 3 or more distinct senders.
+it might be a group convo with 3 or more people
 
-When a message's sender is labeled "Me", that is a message that I sent.
+read it and give me:
+	1.	a one-sentence summary, in second-person, saying who you were talking to and what it was about (e.g. "you were talking to sarah about weekend plans and her new job")
+	2.	a bulleted list, also in second-person, covering what was said or shared—one bullet per idea or topic. stick to just the actual content. don't summarize tone or emotions.
 
-Read the conversation and return:
-1. A single sentence, in **first-person**, mentioning who the conversation was with and what this part of the conversation was about.
-2. A **bulleted list**, also in first-person, capturing the main things that were said, asked, or shared—one bullet per distinct topic or idea.
+don't introduce the summary. don't refer to anyone as "they said" or "you said"—just use natural language like you're casually recounting what the convo was about.
 
-Avoid summarizing the emotional tone of the conversation or interpreting feelings. Just focus on the actual content, using natural, casual first-person language as if I were recalling what was discussed.
-
-Do not say "here's the summary", just provide the result. Do not refer to other people in second-person.
-
-Here is the conversation:
+here's the conversation:
 '''
 }
 
@@ -45,16 +43,45 @@ except requests.RequestException as e:
     print("Run 'ollama serve' in another tab before running this script.")
     sys.exit(1)
 
-# Loop through .txt files in the folder
-for filename in os.listdir(FOLDER_PATH):
-    if filename.endswith(".txt"):
-        file_path = os.path.join(FOLDER_PATH, filename)
-        print(f"\nProcessing {file_path}...")
+# Check if converted_messages.txt exists
+if not os.path.exists(CONVERTED_MESSAGES_FILE):
+    print(f"Error: {CONVERTED_MESSAGES_FILE} not found.")
+    print("Make sure text_to_person_mapper.py has been run first.")
+    sys.exit(1)
 
-        # Read the file contents
-        with open(file_path, "r", encoding="utf-8") as f:
-            file_content = f.read()
+print(f"\nProcessing {CONVERTED_MESSAGES_FILE}...")
 
+# Read the file contents
+with open(CONVERTED_MESSAGES_FILE, "r", encoding="utf-8") as f:
+    file_content = f.read()
+
+# Split the content by conversation sections
+# The pattern matches "=== Content from..." section headers
+conversations = re.split(r'(===\s+Content\s+from\s+.*?===)', file_content)
+
+# Create output directory if it doesn't exist
+os.makedirs("output", exist_ok=True)
+
+# Clear the combined summary file
+combined_summary_path = os.path.join("output", "daily_summary.txt")
+with open(combined_summary_path, "w", encoding="utf-8") as f:
+    f.write(f"Daily Summary - {os.path.basename(CONVERTED_MESSAGES_FILE)}\n\n")
+
+# Process each conversation
+conversation_count = 0
+for i in range(1, len(conversations), 2):
+    if i + 1 < len(conversations):
+        # Get the header and content for this conversation
+        header = conversations[i]
+        content = conversations[i + 1].strip()
+        
+        # Skip if content is too short
+        if len(content) < 50:
+            continue
+            
+        conversation_count += 1
+        print(f"\nProcessing conversation {conversation_count}: {header}")
+        
         try:
             response = requests.post(
                 SERVER_URL + '/api/chat',
@@ -64,7 +91,7 @@ for filename in os.listdir(FOLDER_PATH):
                         system_prompt,
                         {
                             "role": "user",
-                            "content": file_content,
+                            "content": content,
                         }
                     ],
                     "stream": False
@@ -72,35 +99,33 @@ for filename in os.listdir(FOLDER_PATH):
                 timeout=30  # seconds
             )
             if response.status_code == 200:
-                print("Request succeeded")
+                print(f"Request succeeded for conversation {conversation_count}")
                 data = response.json()
-
-                # Create output directory if it doesn't exist
-                os.makedirs("output", exist_ok=True)
                 
-                # Generate output filename
-                output_filename = os.path.join("output", f"{os.path.splitext(filename)[0]}_summary.txt")
+                # Generate conversation-specific summary file
+                conv_filename = f"conversation_{conversation_count}_summary.txt"
+                conv_path = os.path.join("output", conv_filename)
                 
-                # Write summary to file
-                with open(output_filename, "w", encoding="utf-8") as f:
+                # Write individual summary to file
+                with open(conv_path, "w", encoding="utf-8") as f:
+                    f.write(header + "\n\n")
                     f.write(data["message"]["content"])
-                print(f"Wrote summary to {output_filename}")
-                # Also append to combined summary file
-                with open("output/combined_summary.txt", "a", encoding="utf-8") as f:
-                    f.write(f"\n\n=== Summary for {filename} ===\n")
+                print(f"Wrote summary to {conv_path}")
+                
+                # Append to combined summary
+                with open(combined_summary_path, "a", encoding="utf-8") as f:
+                    f.write(f"{header}\n\n")
                     f.write(data["message"]["content"])
-                print("Appended to combined summary file")
+                    f.write("\n\n" + "-" * 40 + "\n\n")
+                
             else:
-                print("Request failed:", response.status_code)
+                print(f"Request failed for conversation {conversation_count}: {response.status_code}")
         except requests.RequestException as e:
-            print(f"Error sending {filename}: {e}")
-# Print combined summary file contents
-try:
-    with open("output/combined_summary.txt", "r", encoding="utf-8") as f:
-        print("\nCombined summaries:")
-        print("-" * 40)
-        print(f.read())
-        print("-" * 40)
-except FileNotFoundError:
-    print("\nNo combined summary file found.")
+            print(f"Error sending request for conversation {conversation_count}: {e}")
+
+if conversation_count == 0:
+    print("No conversations found in the file.")
+else:
+    print(f"\nProcessed {conversation_count} conversations.")
+    print(f"Combined summary written to {combined_summary_path}")
 
